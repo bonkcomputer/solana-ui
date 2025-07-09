@@ -74,25 +74,25 @@ const IntroductionModal: React.FC<IntroductionModalProps> = ({
     {
       title: "Configure Your Settings",
       content: "Start by setting up your RPC endpoint and transaction fees. This ensures your transactions process smoothly on the Solana network.",
-      icon: <Settings size={40} className="text-[#02b36d]" />,
+      icon: <Settings size={40} className="text-[#ddda09]" />,
       image: "settings.png"
     },
     {
       title: "Set Token Address or Deploy",
       content: "Enter a token address in the main input or deploy your own token to start trading. You'll need this to interact with specific tokens on the network.",
-      icon: <Rocket size={40} className="text-[#02b36d]" />,
+      icon: <Rocket size={40} className="text-[#ddda09]" />,
       image: "token.png"
     },
     {
       title: "Buy & Sell Tokens",
       content: "Use the trading features to buy or sell tokens. Create multiple wallets for different trading strategies and track balances in real-time.",
-      icon: <BarChart3 size={40} className="text-[#02b36d]" />,
+      icon: <BarChart3 size={40} className="text-[#ddda09]" />,
       image: "trade.png"
     },
     {
       title: "Monitor Your Profits",
       content: "Track your portfolio performance over time. Use the built-in charts and PNL calculator to maximize your trading strategy and profits.",
-      icon: <DollarSign size={40} className="text-[#02b36d]" />,
+      icon: <DollarSign size={40} className="text-[#ddda09]" />,
       image: "profit.png"
     }
   ];
@@ -106,7 +106,7 @@ const IntroductionModal: React.FC<IntroductionModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 cyberpunk-scanline">
       <div 
-        className="relative bg-[#091217] border border-[#02b36d40] cyberpunk-border rounded-lg w-[32rem] max-w-[95%] p-6 mx-4 min-h-[26rem] overflow-hidden"
+        className="relative bg-[#091217] border border-[#b3a10240] cyberpunk-border rounded-lg w-[32rem] max-w-[95%] p-6 mx-4 min-h-[26rem] overflow-hidden"
         style={{
           animation: 'fadeInScale 0.3s ease-out forwards',
           transform: 'scale(0.95)',
@@ -122,16 +122,16 @@ const IntroductionModal: React.FC<IntroductionModalProps> = ({
         </button>
 
         {/* Progress bar */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-[#02b36d20]">
+        <div className="absolute top-0 left-0 w-full h-1 bg-[#b3b00220]">
           <div 
-            className="h-full bg-[#02b36d]" 
+            className="h-full bg-[#ddda09]" 
             style={{ width: `${progress}%`, transition: 'width 0.5s ease' }}
           ></div>
         </div>
 
         {/* Step indicator */}
-        <div className="absolute top-4 left-4 bg-[#02b36d20] px-3 py-1 rounded-full border border-[#02b36d40]">
-          <span className="text-sm font-mono text-[#02b36d]">
+        <div className="absolute top-4 left-4 bg-[#b3b00220] px-3 py-1 rounded-full border border-[#b3a10240]">
+          <span className="text-sm font-mono text-[#ddda09]">
             {currentStep + 1}/{steps.length}
           </span>
         </div>
@@ -139,17 +139,17 @@ const IntroductionModal: React.FC<IntroductionModalProps> = ({
         {/* Main content */}
         <div className="mt-12 flex flex-col items-center">
           {/* Icon with glowing effect */}
-          <div className="w-20 h-20 flex items-center justify-center bg-[#02b36d10] rounded-full border border-[#02b36d40] mb-6 cyberpunk-border">
+          <div className="w-20 h-20 flex items-center justify-center bg-[#a7b30210] rounded-full border border-[#b3a10240] mb-6 cyberpunk-border">
             {steps[currentStep].icon}
           </div>
 
           {/* Title with cyberpunk styling */}
-          <h2 className="text-2xl font-bold text-[#02b36d] mb-4 text-center cyberpunk-glitch heading-brackets">
+          <h2 className="text-2xl font-bold text-[#ddda09] mb-4 text-center cyberpunk-glitch heading-brackets">
             {steps[currentStep].title}
           </h2>
 
           {/* Content */}
-          <p className="text-[#b3f0d7] text-center mb-8 max-w-md">
+          <p className="text-[#f0ecb3] text-center mb-8 max-w-md">
             {steps[currentStep].content}
           </p>
 
@@ -165,17 +165,17 @@ const IntroductionModal: React.FC<IntroductionModalProps> = ({
           <div className="flex justify-between w-full mt-4">
             <button
               onClick={handlePrevStep}
-              className={`p-2 border border-[#02b36d40] hover:border-[#02b36d] rounded transition-all duration-300 ${
+              className={`p-2 border border-[#b3a10240] hover:border-[#ddda09] rounded transition-all duration-300 ${
                 currentStep === 0 ? 'opacity-50 cursor-not-allowed' : 'cyberpunk-btn'
               }`}
               disabled={currentStep === 0}
             >
-              <ChevronLeft size={20} className="text-[#02b36d]" />
+              <ChevronLeft size={20} className="text-[#ddda09]" />
             </button>
 
             <button
               onClick={handleNextStep}
-              className="px-6 py-2 bg-[#02b36d] hover:bg-[#01a35f] text-black font-medium rounded cyberpunk-btn flex items-center justify-center"
+              className="px-6 py-2 bg-[#ddda09] hover:bg-[#d5d837] text-black font-medium rounded cyberpunk-btn flex items-center justify-center"
             >
               <span className="font-mono tracking-wider">
                 {currentStep < steps.length - 1 ? "Next" : "Finish"}
@@ -192,12 +192,12 @@ const IntroductionModal: React.FC<IntroductionModalProps> = ({
               onChange={() => setDontShowAgain(!dontShowAgain)}
               className="mr-2 cyberpunk-input"
               style={{ 
-                accentColor: '#02b36d',
+                accentColor: '#dce92b',
                 width: '16px',
                 height: '16px'
               }}
             />
-            <label htmlFor="dont-show-again" className="text-sm text-[#7ddfbd] cursor-pointer">
+            <label htmlFor="dont-show-again" className="text-sm text-[#ddc765] cursor-pointer">
               Don't show this again
             </label>
           </div>
