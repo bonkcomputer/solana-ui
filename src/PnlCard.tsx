@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Download } from 'lucide-react';
-import logoImage from './logo.png';
+import logoImage from './logo.svg';
 
 // Define proper types
 interface PnlDataItem {
@@ -175,7 +175,7 @@ const PnlCard: React.FC<PnlCardProps> = ({
               <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden">
                   <img 
                     src={logoImage} 
-                    alt="Raze Logo" 
+                    alt="Solana Computer Logo" 
                     className="w-12 h-12 object-contain"
                     onError={(e) => {
                       // Fallback to lightning icon if logo fails to load

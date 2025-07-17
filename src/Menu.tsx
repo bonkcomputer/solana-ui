@@ -162,8 +162,8 @@ const ServiceSelector = () => {
           whileTap={{ scale: 0.95 }}
         >
           <img 
-            src="https://app.raze.bot/logo.png" 
-            alt="Raze Bundler" 
+            src="/src/logo.svg" 
+            alt="Solana Computer" 
             className="h-8 filter drop-shadow-[0_0_8px_rgba(2,179,109,0.7)]" 
           />
         </motion.div>
@@ -247,9 +247,9 @@ const ServiceSelector = () => {
                           <polyline points="10 9 9 9 8 9" stroke="#FFFFFF" strokeWidth="1" />
                         </svg>
                       </div>} 
-                      label="Docs" 
-                      url="https://docs.Raze.bot"
-                      description="Documentation"
+                                      label="Docs"
+                url="https://sdocs.bonk.computer"
+                description="Documentation"
                     />
                   </motion.div>
                   
@@ -267,7 +267,7 @@ const ServiceSelector = () => {
                         </svg>
                       </div>} 
                       label="GitHub" 
-                      url="https://github.com/Razedotbot"
+                      url="https://github.com/bonkcomputer/solana-ui"
                       description="GitHub Repository"
                     />
                   </motion.div>

@@ -11,8 +11,8 @@ If you discover a security vulnerability, we encourage you to report it **privat
 
 - Please **open a GitHub issue** and prefix the title with `[SECURITY]`.  
 - Alternatively, you can contact us via our Support Center:  
-  👉 [https://help.fury.bot/](https://help.fury.bot/)
+  👉 [https://sdocs.bonk.computer](https://sdocs.bonk.computer)
 
 We will review and address your report as promptly as possible.
 
-Thank you for helping us keep Fury Bot and our users safe!
+Thank you for helping us keep Solana Computer and our users safe!

@@ -1,10 +1,21 @@
 {
-    "name": "Fury Bundler",
-    "short_name": "Fury",
+    "name": "Solana Computer",
+    "short_name": "Solana Computer",
     "display": "standalone",
     "orientation": "portrait",
     "theme_color": "#041726",
     "background_color": "#041726",
     "start_url": "/",
-    "icons": []
+    "icons": [
+        {
+            "src": "/src/android-chrome-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/src/android-chrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
   }

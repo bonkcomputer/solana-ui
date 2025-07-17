@@ -13,11 +13,9 @@
     "jsx": "react-jsx",
     "moduleResolution": "bundler",
     "strict": false,
-    "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": false,
-    "useUnknownInCatchVariables": false,
     "types": ["vite/client", "node"]
   },
   "include": [
