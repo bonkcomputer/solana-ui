@@ -191,10 +191,10 @@ const PnlCard: React.FC<PnlCardProps> = ({
                   </svg>
                 </div>
                <div>
-                 <h2 className="text-white font-bold text-2xl tracking-tight">Raze.BOT</h2>
+                 <h2 className="text-white font-bold text-2xl tracking-tight">Solana Computer</h2>
                  <p className={`text-sm font-medium ${
                    isNegative ? 'text-red-400' : 'text-green-400'
-                 }`}>https://app.raze.bot</p>
+                 }`}>https://trade.bonk.computer</p>
                </div>
             </div>
           </div>

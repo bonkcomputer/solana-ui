@@ -1201,7 +1201,7 @@ export const ActionsPage: React.FC<ActionsPageProps> = ({
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Main Website Link */}
             <a 
-              href="https://raze.bot" 
+              href="https://trade.bonk.computer" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center justify-center py-2 px-4 rounded-lg bg-gradient-to-r 
@@ -1218,7 +1218,7 @@ export const ActionsPage: React.FC<ActionsPageProps> = ({
               >
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
               </svg>
-              RAZE.BOT
+              SOLANA COMPUTER
             </a>
             
             {/* GitHub Link */}
