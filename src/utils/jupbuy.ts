@@ -1,6 +1,7 @@
 import { Connection, PublicKey, Keypair, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { loadConfigFromCookies } from '../Utils';
+import { fetchWithTimeout, parseApiResponse, parseTransactionResponse } from './fetchWithProxy';
 
 // Constants
 
@@ -45,13 +46,11 @@ const getJupiterQuoteFromAPI = async (swapConfig: SwapConfig, solAmount: number)
     const baseEndpoint = 'https://api.jup.ag/swap/v1';
     const endpoint = `${baseEndpoint}/quote?inputMint=${swapConfig.inputMint}&outputMint=${swapConfig.outputMint}&amount=${amountLamports}&slippageBps=${swapConfig.slippageBps}`;
     console.log("Fetching Jupiter quote from:", endpoint);
-    const response = await fetch(endpoint, {
+    const response = await fetchWithTimeout(endpoint, {
       headers: { 'Accept': 'application/json' },
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to fetch Jupiter quote: ${response.status}`);
-    }
-    const quoteResponse = await response.json();
+    }, 20000); // 20 second timeout for API calls
+    
+    const quoteResponse = await parseApiResponse(response);
     return quoteResponse;
   } catch (error) {
     console.error('Error fetching Jupiter quote:', error);
@@ -67,13 +66,13 @@ const sendBundle = async (encodedBundle: string[]): Promise<BundleResult> => {
     const baseUrl = (window as any).tradingServerUrl?.replace(/\/+$/, '') || '';
     
     // Send to our backend proxy instead of directly to Jito
-    const response = await fetch(`${baseUrl}/api/transactions/send`, {
+    const response = await fetchWithTimeout(`${baseUrl}/api/transactions/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         transactions: encodedBundle
       }),
-    });
+    }, 15000); // 15 second timeout for transaction sending
 
     const data = await response.json();
     
@@ -101,7 +100,7 @@ const getPartiallyPreparedSwapTransactions = async (
     // Get fee in SOL (string) with default if not found
     const feeInSol = config?.transactionFee || '0.005';
     const feeInLamports = Math.floor(parseFloat(feeInSol) * 1_000_000_000);
-    const response = await fetch(`${baseUrl}/api/tokens/buy`, {
+    const response = await fetchWithTimeout(`${baseUrl}/api/tokens/buy`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -115,13 +114,9 @@ const getPartiallyPreparedSwapTransactions = async (
         amounts: customAmounts, // Optional custom amounts per wallet
         jitoTipLamports: feeInLamports  // Now a number in lamports
       }),
-    });
+    }, 20000); // 20 second timeout for API calls
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await parseApiResponse(response);
     
     if (!data.success) {
       throw new Error(data.error || 'Failed to get partially prepared swap transactions');

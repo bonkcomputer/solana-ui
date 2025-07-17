@@ -1,5 +1,6 @@
 import { Connection, PublicKey, Keypair, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
+import { fetchWithTimeout, parseApiResponse, parseTransactionResponse } from './fetchWithProxy';
 
 // Constants for rate limiting
 const MAX_BUNDLES_PER_SECOND = 2;
@@ -96,17 +97,13 @@ const sendBundle = async (encodedBundle: string[]): Promise<any> => {
     const baseUrl = (window as any).tradingServerUrl?.replace(/\/+$/, '') || '';
     
     // Send to our backend proxy instead of directly to Jito
-    const response = await fetch(`${baseUrl}/api/transactions/send`, {
+    const response = await fetchWithTimeout(`${baseUrl}/api/transactions/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         transactions: encodedBundle
       }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
+    }, 15000); // 15 second timeout for transaction sending
 
     const data = await response.json();
     
@@ -146,7 +143,7 @@ const getPartiallyPreparedBonkTransactions = async (
       amount: wallet.amount || config.initialBuyAmount * 1e9 // Convert to lamports if not specified
     }));
     
-    const response = await fetch(`${baseUrl}/api/letsbonk/create`, {
+    const response = await fetchWithTimeout(`${baseUrl}/api/letsbonk/create`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -156,13 +153,9 @@ const getPartiallyPreparedBonkTransactions = async (
         initialBuyAmount: config.initialBuyAmount,
         type: config.type || config.tokenMetadata.type || 'meme'
       }),
-    });
+    }, 20000); // 20 second timeout for API calls
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await parseApiResponse(response);
     
     if (!data.success) {
       throw new Error(data.error || 'Failed to get partially prepared bonk transactions');

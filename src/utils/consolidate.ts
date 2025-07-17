@@ -1,5 +1,6 @@
 import { Keypair, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
+import { fetchWithTimeout, parseApiResponse, parseTransactionResponse } from './fetchWithProxy';
 
 // Constants
 const JITO_ENDPOINT = 'https://mainnet.block-engine.jito.wtf/api/v1/block-engine';
@@ -61,13 +62,13 @@ const sendBundle = async (encodedBundle: string[]): Promise<BundleResult> => {
     const baseUrl = (window as any).tradingServerUrl?.replace(/\/+$/, '') || '';
     
     // Send to our backend proxy instead of directly to Jito
-    const response = await fetch(`${baseUrl}/api/transactions/send`, {
+    const response = await fetchWithTimeout(`${baseUrl}/api/transactions/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         transactions: encodedBundle
       }),
-    });
+    }, 15000); // 15 second timeout for transaction sending
 
     const data = await response.json();
     
@@ -90,7 +91,7 @@ const getPartiallyPreparedTransactions = async (
   try {
     const baseUrl = (window as any).tradingServerUrl?.replace(/\/+$/, '') || '';
     
-    const response = await fetch(`${baseUrl}/api/wallets/consolidate`, {
+    const response = await fetchWithTimeout(`${baseUrl}/api/wallets/consolidate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -98,13 +99,9 @@ const getPartiallyPreparedTransactions = async (
         receiverAddress,
         percentage
       }),
-    });
+    }, 20000); // 20 second timeout for API calls
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    const data = await parseApiResponse(response);
     
     if (!data.success) {
       throw new Error(data.error || 'Failed to get partially prepared transactions');
