@@ -1,6 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Blue filter overlay - transforms green theme to blue */
+body {
+  filter: hue-rotate(120deg) saturate(1.2);
+}
+
+/* Keep original colors for chart iframe */
+.iframe-container {
+  filter: hue-rotate(-120deg) saturate(0.833);
+}
+
 @keyframes slideInRight {
     from {
     transform: translateX(100%);
