@@ -34,7 +34,8 @@
     "react-window": "^1.8.11",
     "serve": "^14.2.4",
     "tailwind-merge": "^1.14.0",
-    "zustand": "^5.0.2"
+    "zustand": "^5.0.2",
+    "esbuild": "^0.19.0"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
@@ -57,6 +58,10 @@
     "vite-bundle-analyzer": "^0.7.0"
   },
   "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "^4.0.0"
+    "@rollup/rollup-linux-x64-gnu": "^4.0.0",
+    "@esbuild/linux-x64": "^0.19.0",
+    "@esbuild/darwin-x64": "^0.19.0",
+    "@esbuild/darwin-arm64": "^0.19.0",
+    "@esbuild/win32-x64": "^0.19.0"
   }
 }
