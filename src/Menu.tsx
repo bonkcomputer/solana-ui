@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import logoImage from './bctlogo.png';
 
 // Tooltip Component with cyberpunk styling
 export const Tooltip = ({ 
@@ -162,7 +163,7 @@ const ServiceSelector = () => {
           whileTap={{ scale: 0.95 }}
         >
           <img 
-            src="https://app.raze.bot/logo.png" 
+            src={logoImage} 
             alt="Raze Bundler" 
             className="h-8 filter drop-shadow-[0_0_8px_rgba(2,179,109,0.7)]" 
           />
