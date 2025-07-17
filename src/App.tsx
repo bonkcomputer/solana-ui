@@ -17,6 +17,7 @@ import {
   formatAddress,
   copyToClipboard,
   ConfigType,
+  createReliableConnection,
 } from './Utils';
 import Split from 'react-split';
 import { useToast } from "./Notifications";
@@ -368,6 +369,38 @@ const WalletManager: React.FC = () => {
     setIsDropdownOpen: (open: boolean) => dispatch({ type: 'SET_CONFIG', payload: { ...state.config, isDropdownOpen: open } })
   }), [state.config]);
 
+  // Helper functions
+  const handleRefresh = useCallback(async () => {
+    if (!state.connection) return;
+    
+    memoizedCallbacks.setIsRefreshing(true);
+    
+    try {
+      // Fetch SOL balances with improved rate limiting
+      await fetchSolBalances(state.connection, state.wallets, memoizedCallbacks.setSolBalances);
+      
+      // Fetch token balances if token address is provided
+      if (state.tokenAddress) {
+        await fetchTokenBalances(state.connection, state.wallets, state.tokenAddress, memoizedCallbacks.setTokenBalances);
+      }
+      
+      console.log('Balance refresh completed successfully');
+    } catch (error) {
+      console.error('Error refreshing balances:', error);
+      
+      // Check if it's an RPC-related error and suggest Helius
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('429') || errorMessage.includes('rate limit') || errorMessage.includes('timeout')) {
+        showToast('RPC rate limited. Consider using Helius RPC for better performance.', 'error');
+      } else {
+        showToast('Failed to refresh balances. Please try again.', 'error');
+      }
+    } finally {
+      // Set refreshing to false
+      memoizedCallbacks.setIsRefreshing(false);
+    }
+  }, [state.connection, state.wallets, state.tokenAddress, memoizedCallbacks.setIsRefreshing, memoizedCallbacks.setSolBalances, memoizedCallbacks.setTokenBalances, showToast]);
+
   // Monitor iframe data for whitelist trades and update wallet balances
   useEffect(() => {
     if (state.iframeData?.recentTrades && state.iframeData.recentTrades.length > 0) {
@@ -407,10 +440,16 @@ const WalletManager: React.FC = () => {
           });
           
           console.log(`Updated balances for wallet ${formatAddress(latestTrade.address)}: SOL ${currentSolBalance.toFixed(4)} → ${newSolBalance.toFixed(4)}, Tokens ${currentTokenBalance.toFixed(4)} → ${newTokenBalance.toFixed(4)}`);
+          
+          // Trigger a full balance refresh after a short delay to ensure accuracy
+          setTimeout(() => {
+            console.log('Triggering balance refresh after trade update');
+            handleRefresh();
+          }, 2000);
         }
       }
     }
-  }, [state.iframeData?.recentTrades]); // Removed state.wallets to prevent triggering on wallet selection changes
+  }, [state.iframeData?.recentTrades, handleRefresh]); // Removed state.wallets to prevent triggering on wallet selection changes
 
 
 
@@ -506,10 +545,12 @@ const WalletManager: React.FC = () => {
         
         // Create connection after loading config
         try {
-          const conn = new Connection(savedConfig.rpcEndpoint);
+          const conn = createReliableConnection(savedConfig.rpcEndpoint);
           memoizedCallbacks.setConnection(conn);
+          console.log('RPC connection established:', savedConfig.rpcEndpoint);
         } catch (error) {
           console.error('Error creating connection:', error);
+          showToast('Failed to connect to RPC endpoint. Check your network settings.', 'error');
         }
       }
       
@@ -572,12 +613,21 @@ const WalletManager: React.FC = () => {
   // Update connection when RPC endpoint changes
   useEffect(() => {
     try {
-      const conn = new Connection(state.config.rpcEndpoint);
+      const conn = createReliableConnection(state.config.rpcEndpoint);
       memoizedCallbacks.setConnection(conn);
+      console.log('RPC connection updated:', state.config.rpcEndpoint);
+      
+      // Show success message for RPC changes
+      if (state.config.rpcEndpoint.includes('helius')) {
+        showToast('Connected to Helius RPC - Optimal performance enabled!', 'success');
+      } else if (state.config.rpcEndpoint.includes('quiknode')) {
+        showToast('Connected to QuickNode RPC', 'success');
+      }
     } catch (error) {
       console.error('Error creating connection:', error);
+      showToast('Failed to connect to RPC endpoint. Check your settings.', 'error');
     }
-  }, [state.config.rpcEndpoint, memoizedCallbacks.setConnection]);
+  }, [state.config.rpcEndpoint, memoizedCallbacks.setConnection, showToast]);
 
   // Refresh balances on load
   useEffect(() => {
@@ -599,28 +649,6 @@ const WalletManager: React.FC = () => {
     const timer = setTimeout(() => memoizedCallbacks.setTickEffect(false), 500);
     return () => clearTimeout(timer);
   }, [state.wallets.length, memoizedCallbacks.setTickEffect]);
-
-  // Helper functions
-  const handleRefresh = useCallback(async () => {
-    if (!state.connection) return;
-    
-    memoizedCallbacks.setIsRefreshing(true);
-    
-    try {
-      // Fetch SOL balances
-      await fetchSolBalances(state.connection, state.wallets, memoizedCallbacks.setSolBalances);
-      
-      // Fetch token balances if token address is provided
-      if (state.tokenAddress) {
-        await fetchTokenBalances(state.connection, state.wallets, state.tokenAddress, memoizedCallbacks.setTokenBalances);
-      }
-    } catch (error) {
-      console.error('Error refreshing balances:', error);
-    } finally {
-      // Set refreshing to false
-      memoizedCallbacks.setIsRefreshing(false);
-    }
-  }, [state.connection, state.wallets, state.tokenAddress, memoizedCallbacks.setIsRefreshing, memoizedCallbacks.setSolBalances, memoizedCallbacks.setTokenBalances]);
 
   const handleConfigChange = useCallback((key: keyof ConfigType, value: string) => {
     const newConfig = { ...state.config, [key]: value };

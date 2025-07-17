@@ -1,5 +1,5 @@
 import { Connection } from "@solana/web3.js";
-import { WalletType, fetchSolBalance, fetchTokenBalance } from "./Utils";
+import { WalletType, fetchSolBalance, fetchTokenBalance, fetchSolBalanceWithRetry, fetchTokenBalanceWithRetry } from "./Utils";
 
 /**
  * Extract API key from URL and clean the URL
@@ -38,7 +38,7 @@ export const handleApiKeyFromUrl = (
 };
 
 /**
- * Fetch SOL balances for all wallets
+ * Fetch SOL balances for all wallets with rate limiting and retries
  */
 export const fetchSolBalances = async (
   connection: Connection,
@@ -46,24 +46,43 @@ export const fetchSolBalances = async (
   setSolBalances: Function
 ) => {
   const newBalances = new Map<string, number>();
+  const BATCH_SIZE = 10; // Process 10 wallets at a time
+  const DELAY_BETWEEN_BATCHES = 100; // 100ms delay between batches
+  const DELAY_BETWEEN_REQUESTS = 50; // 50ms delay between individual requests
   
-  const promises = wallets.map(async (wallet) => {
-    try {
-      const balance = await fetchSolBalance(connection, wallet.address);
-      newBalances.set(wallet.address, balance);
-    } catch (error) {
-      console.error(`Error fetching SOL balance for ${wallet.address}:`, error);
-      newBalances.set(wallet.address, 0);
+  // Process wallets in batches to avoid overwhelming the RPC
+  for (let i = 0; i < wallets.length; i += BATCH_SIZE) {
+    const batch = wallets.slice(i, i + BATCH_SIZE);
+    
+    // Process each wallet in the batch sequentially with delays
+    for (const wallet of batch) {
+      try {
+        const balance = await fetchSolBalanceWithRetry(connection, wallet.address);
+        newBalances.set(wallet.address, balance);
+        
+        // Update balances incrementally for better UX
+        setSolBalances(new Map(newBalances));
+        
+        // Small delay between requests to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
+      } catch (error) {
+        console.error(`Error fetching SOL balance for ${wallet.address}:`, error);
+        newBalances.set(wallet.address, 0);
+      }
     }
-  });
+    
+    // Delay between batches
+    if (i + BATCH_SIZE < wallets.length) {
+      await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
+    }
+  }
   
-  await Promise.all(promises);
   setSolBalances(newBalances);
   return newBalances;
 };
 
 /**
- * Fetch token balances for all wallets
+ * Fetch token balances for all wallets with rate limiting and retries
  */
 export const fetchTokenBalances = async (
   connection: Connection,
@@ -74,18 +93,37 @@ export const fetchTokenBalances = async (
   if (!tokenAddress) return new Map<string, number>();
   
   const newBalances = new Map<string, number>();
+  const BATCH_SIZE = 10; // Process 10 wallets at a time
+  const DELAY_BETWEEN_BATCHES = 100; // 100ms delay between batches
+  const DELAY_BETWEEN_REQUESTS = 50; // 50ms delay between individual requests
   
-  const promises = wallets.map(async (wallet) => {
-    try {
-      const balance = await fetchTokenBalance(connection, wallet.address, tokenAddress);
-      newBalances.set(wallet.address, balance);
-    } catch (error) {
-      console.error(`Error fetching token balance for ${wallet.address}:`, error);
-      newBalances.set(wallet.address, 0);
+  // Process wallets in batches to avoid overwhelming the RPC
+  for (let i = 0; i < wallets.length; i += BATCH_SIZE) {
+    const batch = wallets.slice(i, i + BATCH_SIZE);
+    
+    // Process each wallet in the batch sequentially with delays
+    for (const wallet of batch) {
+      try {
+        const balance = await fetchTokenBalanceWithRetry(connection, wallet.address, tokenAddress);
+        newBalances.set(wallet.address, balance);
+        
+        // Update balances incrementally for better UX
+        setTokenBalances(new Map(newBalances));
+        
+        // Small delay between requests to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
+      } catch (error) {
+        console.error(`Error fetching token balance for ${wallet.address}:`, error);
+        newBalances.set(wallet.address, 0);
+      }
     }
-  });
+    
+    // Delay between batches
+    if (i + BATCH_SIZE < wallets.length) {
+      await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
+    }
+  }
   
-  await Promise.all(promises);
   setTokenBalances(newBalances);
   return newBalances;
 };

@@ -273,13 +273,13 @@ export const fetchTokenBalance = async (
     const walletPublicKey = new PublicKey(walletAddress);
     const tokenMintPublicKey = new PublicKey(tokenMint);
 
-    // Find token account
+    // Find token account with more reliable commitment level
     const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
       walletPublicKey,
       {
         mint: tokenMintPublicKey
       }, 
-      "processed"
+      "confirmed" // Use confirmed instead of processed for more reliability
     );
 
     // If no token account found, return 0
@@ -294,18 +294,69 @@ export const fetchTokenBalance = async (
   }
 };
 
+export const fetchTokenBalanceWithRetry = async (
+  connection: Connection,
+  walletAddress: string,
+  tokenMint: string,
+  maxRetries: number = 3
+): Promise<number> => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const balance = await fetchTokenBalance(connection, walletAddress, tokenMint);
+      return balance;
+    } catch (error) {
+      console.warn(`Token balance fetch attempt ${attempt}/${maxRetries} failed for ${walletAddress}:`, error);
+      
+      if (attempt === maxRetries) {
+        console.error(`All ${maxRetries} attempts failed for token balance ${walletAddress}`);
+        return 0;
+      }
+      
+      // Exponential backoff: wait longer between retries
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  return 0;
+};
+
 export const fetchSolBalance = async (
   connection: Connection,
   walletAddress: string
 ): Promise<number> => {
   try {
     const publicKey = new PublicKey(walletAddress);
-    const balance = await connection.getBalance(publicKey, "processed");
+    const balance = await connection.getBalance(publicKey, "confirmed"); // Use confirmed for more reliability
     return balance / 1e9;
   } catch (error) {
     console.error('Error fetching SOL balance:', error);
     return 0;
   }
+};
+
+export const fetchSolBalanceWithRetry = async (
+  connection: Connection,
+  walletAddress: string,
+  maxRetries: number = 3
+): Promise<number> => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const balance = await fetchSolBalance(connection, walletAddress);
+      return balance;
+    } catch (error) {
+      console.warn(`SOL balance fetch attempt ${attempt}/${maxRetries} failed for ${walletAddress}:`, error);
+      
+      if (attempt === maxRetries) {
+        console.error(`All ${maxRetries} attempts failed for SOL balance ${walletAddress}`);
+        return 0;
+      }
+      
+      // Exponential backoff: wait longer between retries
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  return 0;
 };
 
 export const refreshWalletBalance = async (
@@ -326,6 +377,101 @@ export const refreshWalletBalance = async (
     console.error('Error refreshing wallet balance:', error);
     return wallet;
   }
+};
+
+/**
+ * Create a more reliable RPC connection with fallback endpoints
+ * Supports any RPC endpoint including Helius, QuickNode, and public endpoints
+ */
+export const createReliableConnection = (primaryEndpoint: string): Connection => {
+  // Fallback RPC endpoints for better reliability
+  const fallbackEndpoints = [
+    'https://api.mainnet-beta.solana.com',
+    'https://solana-api.projectserum.com',
+    'https://rpc.ankr.com/solana',
+    'https://solana-mainnet.rpc.extrnode.com'
+  ];
+  
+  // Validate and clean the endpoint URL
+  const cleanEndpoint = primaryEndpoint?.trim();
+  if (!cleanEndpoint || !cleanEndpoint.startsWith('http')) {
+    console.warn('Invalid RPC endpoint provided, using fallback');
+    return createConnectionWithFallback(fallbackEndpoints);
+  }
+  
+  try {
+    // Configure connection options based on endpoint type
+    const connectionOptions = getConnectionOptions(cleanEndpoint);
+    
+    // Try primary endpoint first
+    const connection = new Connection(cleanEndpoint, connectionOptions);
+    console.log(`Connected to RPC: ${cleanEndpoint}`);
+    return connection;
+  } catch (error) {
+    console.warn('Primary RPC endpoint failed, trying fallback:', error);
+    return createConnectionWithFallback(fallbackEndpoints);
+  }
+};
+
+/**
+ * Get optimal connection options based on RPC provider
+ */
+const getConnectionOptions = (endpoint: string) => {
+  const baseOptions = {
+    commitment: 'confirmed' as const,
+    confirmTransactionInitialTimeout: 60000,
+    disableRetryOnRateLimit: false
+  };
+
+  // Helius RPC optimizations
+  if (endpoint.includes('helius')) {
+    return {
+      ...baseOptions,
+      confirmTransactionInitialTimeout: 30000, // Helius is faster
+      disableRetryOnRateLimit: true // Helius handles retries internally
+    };
+  }
+  
+  // QuickNode optimizations
+  if (endpoint.includes('quiknode')) {
+    return {
+      ...baseOptions,
+      confirmTransactionInitialTimeout: 45000,
+      disableRetryOnRateLimit: false
+    };
+  }
+  
+  // Public RPC endpoints (more conservative)
+  if (endpoint.includes('api.mainnet-beta.solana.com') || 
+      endpoint.includes('solana-api.projectserum.com')) {
+    return {
+      ...baseOptions,
+      confirmTransactionInitialTimeout: 90000, // Public RPCs can be slower
+      disableRetryOnRateLimit: true
+    };
+  }
+  
+  return baseOptions;
+};
+
+/**
+ * Create connection with fallback endpoints
+ */
+const createConnectionWithFallback = (fallbackEndpoints: string[]): Connection => {
+  for (const endpoint of fallbackEndpoints) {
+    try {
+      const options = getConnectionOptions(endpoint);
+      const connection = new Connection(endpoint, options);
+      console.log(`Connected to fallback RPC: ${endpoint}`);
+      return connection;
+    } catch (fallbackError) {
+      console.warn(`Fallback RPC ${endpoint} failed:`, fallbackError);
+    }
+  }
+  
+  // Last resort - use the first fallback endpoint without options
+  console.warn('All RPC endpoints failed, using basic connection');
+  return new Connection(fallbackEndpoints[0]);
 };
 
 

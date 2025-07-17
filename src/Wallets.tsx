@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw, ExternalLink, Wallet, CheckSquare, Square, DollarSign, Coins, ArrowDownAZ, ArrowUpAZ, Activity, DollarSignIcon, Zap } from 'lucide-react';
-import { saveWalletsToCookies, WalletType, formatAddress, formatTokenBalance, copyToClipboard, toggleWallet, fetchSolBalance, getWalletDisplayName } from './Utils';
+import { saveWalletsToCookies, WalletType, formatAddress, formatTokenBalance, copyToClipboard, toggleWallet, fetchSolBalance, fetchSolBalanceWithRetry, getWalletDisplayName } from './Utils';
 import { useToast } from "./Notifications";
 import { Connection } from '@solana/web3.js';
 import { WalletOperationsButtons } from './OperationsWallets'; // Import the new component
@@ -263,15 +263,16 @@ export const WalletsPage: React.FC<WalletsPageProps> = ({
   
   const { showToast } = useToast();
 
-  // Fetch SOL balances for all wallets one by one
+  // Fetch SOL balances for all wallets with improved rate limiting
   const fetchSolBalances = async () => {
     const newBalances = new Map<string, number>(solBalances);
+    const DELAY_BETWEEN_REQUESTS = 100; // Increased delay for better reliability
     
-    // Process wallets sequentially
+    // Process wallets sequentially with rate limiting
     for (const wallet of wallets) {
       setRefreshingWalletId(wallet.id);
       try {
-        const balance = await fetchSolBalance(connection, wallet.address);
+        const balance = await fetchSolBalanceWithRetry(connection, wallet.address);
         newBalances.set(wallet.address, balance);
         // Update balances after each wallet to show progress
         setSolBalances(new Map(newBalances));
@@ -280,8 +281,8 @@ export const WalletsPage: React.FC<WalletsPageProps> = ({
         newBalances.set(wallet.address, 0);
       }
       
-      // Add a small delay to make the sequential update visible
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // Add delay between requests to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
     }
     
     setRefreshingWalletId(null);
@@ -654,6 +655,7 @@ export const WalletsPage: React.FC<WalletsPageProps> = ({
                         window.open(`https://solscan.io/account/${wallet.address}`, '_blank');
                       }}
                       className="text-[#7ddfbd60] hover:text-[#02b36d] transition-colors duration-200"
+                      title="View on Solscan"
                     >
                       <ExternalLink size={14} />
                     </button>

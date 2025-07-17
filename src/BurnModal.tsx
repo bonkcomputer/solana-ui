@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { CheckCircle, ChevronLeft, ChevronRight, Info, Search, X, ArrowDown } from 'lucide-react';
-import { getWallets } from './Utils';
+import { getWallets, createReliableConnection } from './Utils';
 import { useToast } from "./Notifications";
 import { loadConfigFromCookies } from './Utils';
 import * as web3 from '@solana/web3.js';
@@ -92,7 +92,7 @@ export const BurnModal: React.FC<BurnModalProps> = ({
       try {
         const savedConfig = loadConfigFromCookies();
         const rpcurl = (savedConfig as any).rpcEndpoint
-        const connection = new web3.Connection(rpcurl);
+        const connection = createReliableConnection(rpcurl);
 
         const keypair = web3.Keypair.fromSecretKey(
           bs58.decode(sourceWallet)

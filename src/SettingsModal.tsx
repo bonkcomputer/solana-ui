@@ -276,6 +276,7 @@ const EnhancedSettingsModal: React.FC<EnhancedSettingsModalProps> = ({
           <button 
             onClick={onClose}
             className="p-2 hover:bg-[#ff224420] border border-[#ff224440] hover:border-[#ff2244] rounded transition-all duration-300"
+            title="Close Settings"
           >
             <X size={20} className="text-[#ff2244]" />
           </button>
@@ -318,13 +319,55 @@ const EnhancedSettingsModal: React.FC<EnhancedSettingsModalProps> = ({
                     <label className="block text-sm text-[#7ddfbd] font-mono mb-2 uppercase tracking-wider">
                       RPC Endpoint
                     </label>
-                    <input
-                      type="text"
-                      value={config.rpcEndpoint}
-                      onChange={(e) => onConfigChange('rpcEndpoint', e.target.value)}
-                      className="w-full bg-[#091217] border border-[#02b36d40] rounded p-3 text-sm text-[#e4fbf2] focus:border-[#02b36d] focus:outline-none cyberpunk-input font-mono"
-                      placeholder="Enter RPC endpoint URL"
-                    />
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={config.rpcEndpoint}
+                        onChange={(e) => onConfigChange('rpcEndpoint', e.target.value)}
+                        className="w-full bg-[#091217] border border-[#02b36d40] rounded p-3 text-sm text-[#e4fbf2] focus:border-[#02b36d] focus:outline-none cyberpunk-input font-mono"
+                        placeholder="Enter RPC endpoint URL"
+                      />
+                      
+                      {/* RPC Provider Indicator */}
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div className="flex items-center gap-1">
+                          <div className={`w-2 h-2 rounded-full ${
+                            config.rpcEndpoint.includes('helius') ? 'bg-green-500' :
+                            config.rpcEndpoint.includes('quiknode') ? 'bg-blue-500' :
+                            config.rpcEndpoint.includes('api.mainnet-beta.solana.com') ? 'bg-yellow-500' :
+                            'bg-gray-500'
+                          }`}></div>
+                          <span className="text-xs text-[#7ddfbd80] font-mono">
+                            {config.rpcEndpoint.includes('helius') ? 'HELIUS' :
+                             config.rpcEndpoint.includes('quiknode') ? 'QUICKNODE' :
+                             config.rpcEndpoint.includes('api.mainnet-beta.solana.com') ? 'PUBLIC' :
+                             'CUSTOM'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* RPC Performance Notice */}
+                    <div className="mt-3 p-3 bg-[#051014] border border-[#02b36d20] rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-[#02b36d] rounded-full mt-2 flex-shrink-0"></div>
+                        <div className="text-xs text-[#7ddfbd] font-mono leading-relaxed">
+                          <span className="text-[#02b36d] font-semibold">PERFORMANCE TIP:</span> For best results and fastest balance updates, 
+                          we recommend using <span className="text-[#e4fbf2] font-semibold">Helius RPC</span>. 
+                          <br />
+                          <span className="text-[#7ddfbd80]">Example: https://mainnet.helius-rpc.com/?api-key=YOUR_KEY</span>
+                          <br />
+                          <a 
+                            href="https://www.helius.dev" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-[#02b36d] hover:text-[#7ddfbd] underline transition-colors"
+                          >
+                            Get free Helius API key →
+                          </a>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   
                   <div>
@@ -438,6 +481,8 @@ const EnhancedSettingsModal: React.FC<EnhancedSettingsModalProps> = ({
                         onChange={handleFileUpload}
                         className="hidden"
                         disabled={isProcessingFile}
+                        title="Import wallet file"
+                        aria-label="Import wallet file"
                       />
                       <button
                         onClick={() => fileInputRef.current?.click()}
