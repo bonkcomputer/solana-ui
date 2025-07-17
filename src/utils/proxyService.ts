@@ -90,12 +90,12 @@ export class ProxyService {
   async fetch(url: string, options?: RequestInit): Promise<Response> {
     const proxiedUrl = this.wrapUrl(url);
     
-    // Add headers to help with CORS
+    // Use original options without adding problematic headers
     const enhancedOptions: RequestInit = {
       ...options,
       headers: {
         ...options?.headers,
-        'X-Requested-With': 'XMLHttpRequest',
+        // Removed X-Requested-With header that was causing CORS issues
       },
     };
     
