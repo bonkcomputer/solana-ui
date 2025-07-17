@@ -1,6 +1,7 @@
-import { Connection, PublicKey, Keypair, VersionedTransaction } from '@solana/web3.js';
+import { Connection, Keypair, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { loadConfigFromCookies } from '../Utils';
+import { fetchApiWithTimeout, parseTransactionResponse, fetchWithTimeout } from './fetchWithProxy';
 
 // Constants
 const JITO_ENDPOINT = 'https://mainnet.block-engine.jito.wtf/api/v1/block-engine';
@@ -41,16 +42,19 @@ const sendBundle = async (encodedBundle: string[]): Promise<BundleResult> => {
   try {
     const baseUrl = (window as any).tradingServerUrl?.replace(/\/+$/, '') || '';
     
-    // Send to our backend proxy instead of directly to Jito
-    const response = await fetch(`${baseUrl}/api/transactions/send`, {
+    const response = await fetchWithTimeout(`${baseUrl}/api/transactions/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         transactions: encodedBundle
       }),
-    });
-
+    }, 15000); // 15 second timeout for transaction sending
+    
     const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error.message || data.error || 'Unknown error from bundle server');
+    }
     
     return data.result;
   } catch (error) {
@@ -78,7 +82,7 @@ const getPartiallyPreparedSellTransactions = async (
     // 1 SOL = 1,000,000,000 lamports
     const feeInLamports = Math.floor(parseFloat(feeInSol) * 1_000_000_000);
     
-    const response = await fetch(`${baseUrl}/api/tokens/sell`, {
+    const data = await fetchApiWithTimeout(`${baseUrl}/api/tokens/sell`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -91,19 +95,9 @@ const getPartiallyPreparedSellTransactions = async (
         percentage: sellConfig.sellPercent,
         jitoTipLamports: feeInLamports  // Now a number in lamports
       }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    }, 20000); // 20 second timeout for sell transaction preparation
     
-    if (!data.success) {
-      throw new Error(data.error || 'Failed to get partially prepared sell transactions');
-    }
-    
-    return data.transactions; // Array of base58 encoded partially prepared transactions
+    return parseTransactionResponse(data);
   } catch (error) {
     console.error('Error getting partially prepared transactions:', error);
     throw error;

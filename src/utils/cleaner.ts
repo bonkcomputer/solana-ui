@@ -1,7 +1,8 @@
-import { Keypair, VersionedTransaction } from '@solana/web3.js';
+import { Connection, Keypair, VersionedTransaction } from '@solana/web3.js';
 import bs58 from 'bs58';
 // Note: Import loadConfigFromCookies from your Utils module if available
 import { loadConfigFromCookies } from '../Utils';
+import { fetchApiWithTimeout, parseTransactionResponse, fetchWithTimeout } from './fetchWithProxy';
 
 const MAX_BUNDLES_PER_SECOND = 2;
 
@@ -60,16 +61,19 @@ const sendBundle = async (encodedBundle: string[]): Promise<BundleResult> => {
   try {
     const baseUrl = (window as any).tradingServerUrl?.replace(/\/+$/, '') || '';
     
-    // Send to our backend proxy instead of directly to Jito
-    const response = await fetch(`${baseUrl}/api/transactions/send`, {
+    const response = await fetchWithTimeout(`${baseUrl}/api/transactions/send`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         transactions: encodedBundle
       }),
-    });
+    }, 15000); // 15 second timeout for transaction sending
 
     const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error.message || data.error || 'Unknown error from bundle server');
+    }
     
     return data.result;
   } catch (error) {
@@ -100,7 +104,7 @@ const getSellTransactions = async (
     const feeInSol = config?.transactionFee || '0.005';
     const feeInLamports = Math.floor(parseFloat(feeInSol) * 1_000_000_000);
     
-    const response = await fetch(`${baseUrl}/api/tokens/sell`, {
+    const data = await fetchApiWithTimeout(`${baseUrl}/api/tokens/sell`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -113,31 +117,9 @@ const getSellTransactions = async (
         percentage: sellPercentage,
         jitoTipLamports: feeInLamports
       }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    }, 20000); // 20 second timeout for sell transaction preparation
     
-    if (!data.success) {
-      throw new Error(data.error || 'Failed to get sell transactions');
-    }
-    
-    // Extract transactions from the response
-    if (data.bundles && Array.isArray(data.bundles)) {
-      // Flatten all bundles into a single array of transactions
-      return data.bundles.flatMap((bundle: any) => 
-        Array.isArray(bundle) ? bundle : bundle.transactions || []
-      );
-    } else if (data.transactions && Array.isArray(data.transactions)) {
-      return data.transactions;
-    } else if (Array.isArray(data)) {
-      return data;
-    } else {
-      throw new Error('No transactions returned from sell endpoint');
-    }
+    return parseTransactionResponse(data);
   } catch (error) {
     console.error('Error getting sell transactions:', error);
     throw error;
@@ -197,7 +179,7 @@ const getBuyTransactions = async (
     const feeInSol = config?.transactionFee || '0.005';
     const feeInLamports = Math.floor(parseFloat(feeInSol) * 1_000_000_000);
     
-    const response = await fetch(`${baseUrl}/api/tokens/buy`, {
+    const data = await fetchApiWithTimeout(`${baseUrl}/api/tokens/buy`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -210,31 +192,9 @@ const getBuyTransactions = async (
         protocol: protocol, // Use dynamic protocol
         jitoTipLamports: feeInLamports
       }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
+    }, 20000); // 20 second timeout for buy transaction preparation
     
-    if (!data.success) {
-      throw new Error(data.error || 'Failed to get buy transactions');
-    }
-    
-    // Extract transactions from the response
-    if (data.bundles && Array.isArray(data.bundles)) {
-      // Flatten all bundles into a single array of transactions
-      return data.bundles.flatMap((bundle: any) => 
-        Array.isArray(bundle) ? bundle : bundle.transactions || []
-      );
-    } else if (data.transactions && Array.isArray(data.transactions)) {
-      return data.transactions;
-    } else if (Array.isArray(data)) {
-      return data;
-    } else {
-      throw new Error('No transactions returned from buy endpoint');
-    }
+    return parseTransactionResponse(data);
   } catch (error) {
     console.error('Error getting buy transactions:', error);
     throw error;

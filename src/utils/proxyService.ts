@@ -113,7 +113,13 @@ export class ProxyService {
       // If proxy fails, try direct connection
       if (this.isEnabled) {
         console.warn('Proxy request failed, trying direct connection...');
-        return this.originalFetch(url, options);
+        try {
+          return this.originalFetch(url, options);
+        } catch (fallbackError) {
+          // If both proxy and direct fail, throw the original error
+          console.error('Both proxy and direct connection failed:', { proxyError: error, directError: fallbackError });
+          throw error;
+        }
       }
       throw error;
     }
