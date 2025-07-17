@@ -596,19 +596,20 @@ const WalletManager: React.FC = () => {
     saveQuickBuyPreferencesToCookies(preferences);
   }, [state.quickBuyEnabled, state.quickBuyAmount, state.quickBuyMinAmount, state.quickBuyMaxAmount, state.useQuickBuyRange]);
 
-  // Fetch SOL balances when wallets change or connection is established
+  // Fetch balances when connection or wallets change (debounced)
   useEffect(() => {
-    if (state.connection && state.wallets.length > 0) {
+    if (!state.connection || state.wallets.length === 0) return;
+    
+    const timeoutId = setTimeout(() => {
       fetchSolBalances(state.connection, state.wallets, memoizedCallbacks.setSolBalances);
-    }
-  }, [state.connection, state.wallets.length, memoizedCallbacks.setSolBalances]);
-
-  // Fetch token balances when token address changes or wallets change
-  useEffect(() => {
-    if (state.connection && state.wallets.length > 0 && state.tokenAddress) {
-      fetchTokenBalances(state.connection, state.wallets, state.tokenAddress, memoizedCallbacks.setTokenBalances);
-    }
-  }, [state.connection, state.wallets.length, state.tokenAddress, memoizedCallbacks.setTokenBalances]);
+      
+      if (state.tokenAddress) {
+        fetchTokenBalances(state.connection, state.wallets, state.tokenAddress, memoizedCallbacks.setTokenBalances);
+      }
+    }, 100); // 100ms debounce
+    
+    return () => clearTimeout(timeoutId);
+  }, [state.connection, state.wallets.length, state.tokenAddress]);
 
   // Update connection when RPC endpoint changes
   useEffect(() => {
@@ -616,39 +617,20 @@ const WalletManager: React.FC = () => {
       const conn = createReliableConnection(state.config.rpcEndpoint);
       memoizedCallbacks.setConnection(conn);
       console.log('RPC connection updated:', state.config.rpcEndpoint);
-      
-      // Show success message for RPC changes
-      if (state.config.rpcEndpoint.includes('helius')) {
-        showToast('Connected to Helius RPC - Optimal performance enabled!', 'success');
-      } else if (state.config.rpcEndpoint.includes('quiknode')) {
-        showToast('Connected to QuickNode RPC', 'success');
-      }
     } catch (error) {
       console.error('Error creating connection:', error);
       showToast('Failed to connect to RPC endpoint. Check your settings.', 'error');
     }
-  }, [state.config.rpcEndpoint, memoizedCallbacks.setConnection, showToast]);
+  }, [state.config.rpcEndpoint]);
 
-  // Refresh balances on load
-  useEffect(() => {
-    if (state.connection && state.wallets.length > 0) {
-      handleRefresh();
-    }
-  }, [state.connection, state.wallets.length]);
 
-  // Add effect to refresh balances when token address changes
-  useEffect(() => {
-    if (state.connection && state.wallets.length > 0 && state.tokenAddress) {
-      handleRefresh();
-    }
-  }, [state.tokenAddress, state.connection, state.wallets.length]);
 
   // Trigger tick animation when wallet count changes
   useEffect(() => {
     memoizedCallbacks.setTickEffect(true);
     const timer = setTimeout(() => memoizedCallbacks.setTickEffect(false), 500);
     return () => clearTimeout(timer);
-  }, [state.wallets.length, memoizedCallbacks.setTickEffect]);
+  }, [state.wallets.length]);
 
   const handleConfigChange = useCallback((key: keyof ConfigType, value: string) => {
     const newConfig = { ...state.config, [key]: value };

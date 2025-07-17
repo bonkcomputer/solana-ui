@@ -60,9 +60,6 @@ export const fetchSolBalances = async (
         const balance = await fetchSolBalanceWithRetry(connection, wallet.address);
         newBalances.set(wallet.address, balance);
         
-        // Update balances incrementally for better UX
-        setSolBalances(new Map(newBalances));
-        
         // Small delay between requests to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
       } catch (error) {
@@ -106,9 +103,6 @@ export const fetchTokenBalances = async (
       try {
         const balance = await fetchTokenBalanceWithRetry(connection, wallet.address, tokenAddress);
         newBalances.set(wallet.address, balance);
-        
-        // Update balances incrementally for better UX
-        setTokenBalances(new Map(newBalances));
         
         // Small delay between requests to avoid rate limiting
         await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_REQUESTS));
