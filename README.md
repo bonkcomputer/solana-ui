@@ -1,4 +1,6 @@
-# Solana Computer
+# Solana Computer V0.5.0
+
+---
 
 ![Built on Solana](https://img.shields.io/badge/Built%20on-Solana-3a0ca3?style=for-the-badge&logo=solana)
 ![Open Source](https://img.shields.io/badge/Open%20Source-Yes-00b386?style=for-the-badge&logo=github)
