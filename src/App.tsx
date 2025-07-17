@@ -1,5 +1,5 @@
 import React, { useEffect, lazy, useCallback, useReducer, useMemo } from 'react';
-import { X, Settings } from 'lucide-react';
+import { X, Settings, Bot, Lock } from 'lucide-react';
 import { Connection } from '@solana/web3.js';
 import ServiceSelector from './Menu.tsx';
 import { WalletTooltip, initStyles } from './Styles';
@@ -28,6 +28,8 @@ import {
 } from './Manager';
 import { countActiveWallets, validateActiveWallets, getScriptName, maxWalletsConfig } from './Wallets';
 import { executeTrade } from './TradingLogic';
+import { proxyService } from './utils/proxyService';
+import { initializeProxyFetch } from './utils/fetchWithProxy';
 
 // Lazy loaded components
 const EnhancedSettingsModal = lazy(() => import('./SettingsModal'));
@@ -46,6 +48,16 @@ const CustomBuyModal = lazy(() => import('./CustomBuyModal').then(module => ({ d
 const FloatingTradingCard = lazy(() => import('./FloatingTradingCard'));
 
 const WalletManager: React.FC = () => {
+  // Initialize proxy fetch on component mount
+  useEffect(() => {
+    const restoreFetch = initializeProxyFetch();
+    
+    // Cleanup: restore original fetch on unmount
+    return () => {
+      restoreFetch();
+    };
+  }, []);
+  
   // Apply styles
   useEffect(() => {
     const styleElement = document.createElement('style');
@@ -114,7 +126,8 @@ const WalletManager: React.FC = () => {
       tradeType: 'buy' | 'sell';
       volume: number;
     } | null;
-  } | null;
+    } | null;
+    vpnActive: boolean;
   }
 
   type AppAction = 
@@ -146,7 +159,8 @@ const WalletManager: React.FC = () => {
     | { type: 'SET_QUICK_BUY_MIN_AMOUNT'; payload: number }
     | { type: 'SET_QUICK_BUY_MAX_AMOUNT'; payload: number }
     | { type: 'SET_USE_QUICK_BUY_RANGE'; payload: boolean }
-    | { type: 'SET_IFRAME_DATA'; payload: { tradingStats: any; solPrice: number | null; currentWallets: any[]; recentTrades: { type: 'buy' | 'sell'; address: string; tokensAmount: number; avgPrice: number; solAmount: number; timestamp: number; signature: string; }[]; tokenPrice: { tokenPrice: number; tokenMint: string; timestamp: number; tradeType: 'buy' | 'sell'; volume: number; } | null; } | null };
+    | { type: 'SET_IFRAME_DATA'; payload: { tradingStats: any; solPrice: number | null; currentWallets: any[]; recentTrades: { type: 'buy' | 'sell'; address: string; tokensAmount: number; avgPrice: number; solAmount: number; timestamp: number; signature: string; }[]; tokenPrice: { tokenPrice: number; tokenMint: string; timestamp: number; tradeType: 'buy' | 'sell'; volume: number; } | null; } | null }
+    | { type: 'SET_VPN_ACTIVE'; payload: boolean };
 
   const initialState: AppState = {
     copiedAddress: null,
@@ -192,7 +206,8 @@ const WalletManager: React.FC = () => {
     quickBuyMinAmount: 0.01,
     quickBuyMaxAmount: 0.05,
     useQuickBuyRange: false,
-    iframeData: null
+    iframeData: null,
+    vpnActive: false
   };
 
   const appReducer = (state: AppState, action: AppAction): AppState => {
@@ -286,6 +301,8 @@ const WalletManager: React.FC = () => {
         return { ...state, useQuickBuyRange: action.payload };
       case 'SET_IFRAME_DATA':
         return { ...state, iframeData: action.payload };
+      case 'SET_VPN_ACTIVE':
+        return { ...state, vpnActive: action.payload };
       default:
         return state;
     }
@@ -339,7 +356,8 @@ const WalletManager: React.FC = () => {
     setQuickBuyMinAmount: (amount: number) => dispatch({ type: 'SET_QUICK_BUY_MIN_AMOUNT', payload: amount }),
     setQuickBuyMaxAmount: (amount: number) => dispatch({ type: 'SET_QUICK_BUY_MAX_AMOUNT', payload: amount }),
     setUseQuickBuyRange: (useRange: boolean) => dispatch({ type: 'SET_USE_QUICK_BUY_RANGE', payload: useRange }),
-    setIframeData: (data: { tradingStats: any; solPrice: number | null; currentWallets: any[]; recentTrades: { type: 'buy' | 'sell'; address: string; tokensAmount: number; avgPrice: number; solAmount: number; timestamp: number; signature: string; }[]; tokenPrice: { tokenPrice: number; tokenMint: string; timestamp: number; tradeType: 'buy' | 'sell'; volume: number; } | null; } | null) => dispatch({ type: 'SET_IFRAME_DATA', payload: data })
+    setIframeData: (data: { tradingStats: any; solPrice: number | null; currentWallets: any[]; recentTrades: { type: 'buy' | 'sell'; address: string; tokensAmount: number; avgPrice: number; solAmount: number; timestamp: number; signature: string; }[]; tokenPrice: { tokenPrice: number; tokenMint: string; timestamp: number; tradeType: 'buy' | 'sell'; volume: number; } | null; } | null) => dispatch({ type: 'SET_IFRAME_DATA', payload: data }),
+    setVpnActive: (active: boolean) => dispatch({ type: 'SET_VPN_ACTIVE', payload: active })
   }), []);
 
   // Separate callbacks for config updates to prevent unnecessary re-renders
@@ -510,6 +528,9 @@ const WalletManager: React.FC = () => {
         memoizedCallbacks.setQuickBuyMaxAmount(savedQuickBuyPreferences.quickBuyMaxAmount);
         memoizedCallbacks.setUseQuickBuyRange(savedQuickBuyPreferences.useQuickBuyRange);
       }
+      
+      // Initialize VPN state from proxy service
+      memoizedCallbacks.setVpnActive(proxyService.isActive());
     };
 
     initializeApp();
@@ -702,6 +723,7 @@ const WalletManager: React.FC = () => {
           <WalletTooltip content="Paste from clipboard" position="bottom">
             <button
               className="p-2 border border-[#02b36d40] hover:border-[#02b36d] bg-[#0a1419] rounded cyberpunk-btn"
+              aria-label="Paste from clipboard"
               onClick={async () => {
                 try {
                   const text = await navigator.clipboard.readText();
@@ -724,9 +746,37 @@ const WalletManager: React.FC = () => {
           <WalletTooltip content="Open Settings" position="bottom">
             <button 
               className="p-2 border border-[#02b36d40] hover:border-[#02b36d] bg-[#0a1419] rounded cyberpunk-btn"
+              aria-label="Open Settings"
               onClick={() => memoizedCallbacks.setIsSettingsOpen(true)}
             >
               <Settings size={20} className="text-[#02b36d]" />
+            </button>
+          </WalletTooltip>
+
+          <WalletTooltip content="Automated AI Quant Operator: Coming Soon" position="bottom">
+            <button 
+              className="p-2 border border-[#02b36d40] hover:border-[#02b36d] bg-[#0a1419] rounded cyberpunk-btn opacity-70 cursor-not-allowed"
+              aria-label="AI Quant Operator"
+              onClick={() => showToast("AI Quant Operator coming soon!", "info")}
+            >
+              <Bot size={20} className="text-[#02b36d]" />
+            </button>
+          </WalletTooltip>
+
+          <WalletTooltip content={state.vpnActive ? "VPN Proxy Active - All API calls are routed through proxy" : "VPN Proxy Inactive - Direct connections"} position="bottom">
+            <button 
+              className={`p-2 border ${state.vpnActive ? 'border-[#02b36d] bg-[#02b36d20]' : 'border-[#02b36d40]'} hover:border-[#02b36d] bg-[#0a1419] rounded cyberpunk-btn`}
+              aria-label="VPN Status"
+              onClick={() => {
+                const newStatus = proxyService.toggle();
+                memoizedCallbacks.setVpnActive(newStatus);
+                showToast(
+                  newStatus ? "VPN proxy protection activated" : "VPN proxy protection deactivated", 
+                  newStatus ? "success" : "info"
+                );
+              }}
+            >
+              <Lock size={20} className={state.vpnActive ? 'text-[#02b36d]' : 'text-[#02b36d80]'} />
             </button>
           </WalletTooltip>
 
