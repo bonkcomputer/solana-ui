@@ -57,6 +57,7 @@
     "vite-bundle-analyzer": "^0.7.0"
   },
   "optionalDependencies": {
+    "@esbuild/linux-x64": "^0.24.2",
     "@rollup/rollup-linux-x64-gnu": "^4.0.0"
   }
 }
