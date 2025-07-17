@@ -757,7 +757,7 @@ const WalletManager: React.FC = () => {
             <button 
               className="p-2 border border-[#02b36d40] hover:border-[#02b36d] bg-[#0a1419] rounded cyberpunk-btn opacity-70 cursor-not-allowed"
               aria-label="AI Quant Operator"
-              onClick={() => showToast("AI Quant Operator coming soon!", "info")}
+              onClick={() => showToast("AI Quant Operator coming soon!", "success")}
             >
               <Bot size={20} className="text-[#02b36d]" />
             </button>
@@ -772,7 +772,7 @@ const WalletManager: React.FC = () => {
                 memoizedCallbacks.setVpnActive(newStatus);
                 showToast(
                   newStatus ? "VPN proxy protection activated" : "VPN proxy protection deactivated", 
-                  newStatus ? "success" : "info"
+                  newStatus ? "success" : "success"
                 );
               }}
             >
