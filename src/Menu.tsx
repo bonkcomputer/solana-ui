@@ -249,7 +249,7 @@ const ServiceSelector = () => {
                         </svg>
                       </div>} 
                       label="Docs" 
-                      url="https://docs.Raze.bot"
+                      url="https://sdocs.bonk.computer"
                       description="Documentation"
                     />
                   </motion.div>
